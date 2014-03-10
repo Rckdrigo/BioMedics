@@ -33,4 +33,7 @@ public class PhoneInterface : MonoBehaviour {
 		rightHanded = hand;
 	}
 
+	void OnDestroy(){
+		Network.Disconnect();
+	}
 }

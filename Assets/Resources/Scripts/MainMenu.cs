@@ -10,16 +10,11 @@ public class MainMenu : MonoBehaviour {
 #if UNITY_ANDROID
 	
 	private bool refreshingHosts;
-	string name = "";
 
 	int option = 0;
 	string[] a = {"Izquierdo","Derecho"};
 
-	void Start(){
-		if(PlayerPrefs.HasKey("Name"))
-			name = PlayerPrefs.GetString("Name");
-		
-	}
+	string code = "";
 
 	void Update(){
 
@@ -31,7 +26,7 @@ public class MainMenu : MonoBehaviour {
 				hostData = MasterServer.PollHostList();
 
 				if(hostData.Length > 0){
-					string temp = "SODVI_"+name;
+					string temp = "SODVI_"+code;
 					for(int i = 0; i < hostData.Length; i++){
 						if(hostData[i].gameName == temp){
 							Network.Connect(hostData[i].ip,port);
@@ -56,39 +51,27 @@ public class MainMenu : MonoBehaviour {
 		GUILayout.BeginArea(new Rect(0,0,Screen.width,Screen.height));
 	
 		GUILayout.Label("Reh-app-ilitacion");
-		if(PlayerPrefs.HasKey("Name")){
-			GUILayout.Label("Bienvenido "+ PlayerPrefs.GetString("Name"));
-
-			if(!Network.isClient){
-				if(GUILayout.Button("Sincronizar")){
-					refreshingHosts = true;
-					MasterServer.RequestHostList("SODVI");
-			}
-			}else{
-				GUILayout.Label("Sincronizado ");
-				GUILayout.Label("Indica con que lado trabajaras en esta sesion: ");
-				option = GUILayout.SelectionGrid(option,a,2);
-			}
-			
-			if(GUILayout.Button("Borra Usuario")){
-				PlayerPrefs.DeleteKey("Name");
-				Network.Disconnect();
-			}
-		}else{
-			GUILayout.Label("Nombre de usuario: ");
-			name = GUILayout.TextField(name);
-			if(GUILayout.Button("Ingresar datos"))
-				PlayerPrefs.SetString("Name",name);
+		code = GUILayout.TextField(code);
+		if(!Network.isClient){
+			if(GUILayout.Button("Sincronizar")){
+				refreshingHosts = true;
+				MasterServer.RequestHostList("SODVI");
 		}
+		}else{
+			GUILayout.Label("Sincronizado ");
+			GUILayout.Label("Indica con que lado trabajaras en esta sesion: ");
+			option = GUILayout.SelectionGrid(option,a,2);
+		}
+
+		
 		GUILayout.EndArea();
 	}
 #else
-	string name = "";
+	string randomCode;
+	bool master;
 
 	void Start(){
-		if(PlayerPrefs.HasKey("Name"))
-			name = PlayerPrefs.GetString("Name");
-		
+		randomCode = RandomAccessCode.generateCode();
 	}
 
 	void OnServerInitialized () {
@@ -97,43 +80,32 @@ public class MainMenu : MonoBehaviour {
 
 	void OnMasterServerEvent(MasterServerEvent mse){
 		if(mse == MasterServerEvent.RegistrationSucceeded){
-			print ("Servidor registrado");
+			master = true;
 		}
 	}
 
 	void OnGUI(){
+
 		GUI.skin = skin;
 		GUILayout.BeginArea(new Rect(0,0,Screen.width,Screen.height));
 		GUILayout.Label("Reh-app-ilitacion");
-		
-		if(PlayerPrefs.HasKey("Name")){
 
-			GUILayout.Label("Bienvenido "+ PlayerPrefs.GetString("Name"));
-			GUILayout.Label("N: "+Network.connections.Length);
-			if(Network.connections.Length == 0){
-				if(GUILayout.Button("Iniciar Servidor")){
-					Network.InitializeServer(1,port,!Network.HavePublicAddress());
-					MasterServer.RegisterHost("SODVI","SODVI_"+PlayerPrefs.GetString("Name"));
-				}
-			}else{
-				GUILayout.Label ("Dispositivo sincronizado");
-				if(GUILayout.Button("Iniciar sesion"))
-					Application.LoadLevel("Level Test");
+		if(master)
+			GUILayout.Label("Clave de acceso: "+ randomCode);
+		else{
+			if(GUILayout.Button("Iniciar Servidor")){
+				Network.InitializeServer(1,port,!Network.HavePublicAddress());
+				MasterServer.RegisterHost("SODVI","SODVI_" + randomCode);
 			}
-
-			if(GUILayout.Button("Borra Usuario")){
-				PlayerPrefs.DeleteKey("Name");
-				Network.Disconnect();
-			}
-		}else{
-			GUILayout.Label("Nombre de usuario: ");
-			name = GUILayout.TextField(name);
-			if(GUILayout.Button("Crear perfil"))
-				PlayerPrefs.SetString("Name",name);
 		}
+
+		if(Network.connections.Length > 0){
+			GUILayout.Label ("Dispositivo sincronizado");
+			if(GUILayout.Button("Iniciar juego"))
+				Application.LoadLevel("Level Test");
+		}
+		
 		GUILayout.EndArea();	
 	}
 #endif
-
-
 }
